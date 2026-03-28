@@ -10,21 +10,27 @@ LABEL maintainer="Cloud Native Academy <team@cloudnative.academy>"
 LABEL description="Docker image for Mi Aplicacion Java - Spring Boot REST API"
 LABEL version="2.0.0"
 
-# Create user and group
+# --- STAGE 1: The Build Environment ---
+FROM maven:3.9.6-eclipse-temurin-17 AS build
+WORKDIR /home/app
+# Copy your source code and build the JAR
+COPY pom.xml .
+COPY src ./src
+RUN mvn clean package -DskipTests
+
+# --- STAGE 2: The Final Runtime Image ---
+FROM tomcat:jre17-temurin-jammy
 RUN groupadd -g 10001 app && \
     useradd -u 10001 -g app -s /usr/sbin/nologin -m app
 
 WORKDIR /app
 
-# Combine the copy and ownership change into one step
-# COPY --chown=app:app target/*.jar /app/app.jar
-# Assuming your first stage is: FROM maven AS build
+# This now works because "build" refers to the stage above
 COPY --from=build /home/app/target/*.jar /app/app.jar
 
-# Adjust permissions if necessary (though 755 is usually default for files)
-RUN chmod 755 /app/app.jar
-
 USER app
+CMD ["java", "-jar", "/app/app.jar"]
+
 # USER 10001
 # =====================================================
 # Health check
