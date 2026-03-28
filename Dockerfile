@@ -1,78 +1,38 @@
-# =====================================================
-# Mi Aplicación Java - Spring Boot Container
-# =====================================================
-# Image: tomcat:jre17-temurin-jammy
-# Purpose: REST API con Spring Boot 2.7.8
-
-FROM tomcat:jre17-temurin-jammy
-
-LABEL maintainer="Cloud Native Academy <team@cloudnative.academy>"
-LABEL description="Docker image for Mi Aplicacion Java - Spring Boot REST API"
-LABEL version="2.0.0"
-
-# --- STAGE 1: The Build Environment ---
+# --- STAGE 1: Build ---
 FROM maven:3.9.6-eclipse-temurin-17 AS build
 WORKDIR /home/app
-# Copy your source code and build the JAR
 COPY pom.xml .
 COPY src ./src
 RUN mvn clean package -DskipTests
 
-# --- STAGE 2: The Final Runtime Image ---
-FROM tomcat:jre17-temurin-jammy
+# --- STAGE 2: Runtime ---
+FROM eclipse-temurin:17-jre-jammy
+
+# Install curl for the Healthcheck
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
 RUN groupadd -g 10001 app && \
     useradd -u 10001 -g app -s /usr/sbin/nologin -m app
 
-# Move to the app directory
 WORKDIR /app
 
-# Copy from the build stage and rename to a simple, predictable name
-COPY --from=build /home/app/target/*.jar app.jar
-
-# Ensure the app user owns the file
-RUN chown app:app app.jar
+# Copy and set ownership in one layer
+COPY --from=build --chown=app:app /home/app/target/*.jar /app/app.jar
 
 USER app
 
-# Run the jar directly from the current WORKDIR (/app)
-CMD ["java", "-jar", "app.jar", "--server.port=${8080}"]
-
-# USER 10001
-# =====================================================
-# Health check
-# =====================================================
+# Dynamic Healthcheck: Use the PORT variable or default to 8080 for local testing
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:8080/api/actuator/health || exit 1
+    CMD curl -f http://localhost:${PORT:-8080}/api/actuator/health || exit 1
 
-# =====================================================
-# Expose Port and Entry Point
-# =====================================================
+# Railway ignores EXPOSE, but it's good documentation
 EXPOSE 8080
 
+# CRITICAL: Added server.port flag to bind to Railway's dynamic port
 ENTRYPOINT ["java", \
             "-Dspring.profiles.active=prod", \
             "-Xms256m", \
             "-Xmx512m", \
             "-jar", \
-            "/app/app.jar"]
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+            "/app/app.jar", \
+            "--server.port=${PORT}"]
