@@ -46,7 +46,7 @@ public class SecurityConfig {
             .cors().and()
             .authorizeRequests(authz -> authz
                 // Permitir acceso público SIN restricciones en desarrollo
-                .anyRequest().permitAll()
+                .anyRequest().authenticated()
             )
             .sessionManagement()
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)  // Usar JWT en lugar de sesiones

@@ -10,34 +10,26 @@ LABEL maintainer="Cloud Native Academy <team@cloudnative.academy>"
 LABEL description="Docker image for Mi Aplicacion Java - Spring Boot REST API"
 LABEL version="2.0.0"
 
-# =====================================================
-# Create non-root user for security
-# =====================================================
+# Create user and group
 RUN groupadd -g 10001 app && \
     useradd -u 10001 -g app -s /usr/sbin/nologin -m app
 
-# =====================================================
-# Setup Application Directory
-# =====================================================
 WORKDIR /app
 
-# =====================================================
-# Copy and configure JAR file
-# =====================================================
-COPY target/*.jar /app/app.jar
-RUN chown -R app:app /app && \
-    chmod 755 /app
+# Combine the copy and ownership change into one step
+COPY --chown=app:app target/*.jar /app/app.jar
+
+# Adjust permissions if necessary (though 755 is usually default for files)
+RUN chmod 755 /app/app.jar
+
+USER app
+# USER 10001
 
 # =====================================================
 # Health check
 # =====================================================
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:8080/api/actuator/health || exit 1
-
-# =====================================================
-# Execute as non-root user
-# =====================================================
-USER 10001
 
 # =====================================================
 # Expose Port and Entry Point
@@ -50,6 +42,8 @@ ENTRYPOINT ["java", \
             "-Xmx512m", \
             "-jar", \
             "/app/app.jar"]
+
+
 
 
 
