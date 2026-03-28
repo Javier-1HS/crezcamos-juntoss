@@ -35,7 +35,7 @@ RUN chown app:app app.jar
 USER app
 
 # Run the jar directly from the current WORKDIR (/app)
-CMD ["java", "-jar", "app.jar"]
+CMD ["java", "-jar", "app.jar", "--server.port=${8080}"]
 
 # USER 10001
 # =====================================================
