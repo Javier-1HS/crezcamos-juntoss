@@ -1,0 +1,101 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ${APP_NAME}
+  namespace: ${K8S_NAMESPACE}
+  labels:
+    app: ${APP_NAME}
+    environment: ${K8S_NAMESPACE}
+  annotations:
+    # Controlador de Ingress
+    kubernetes.io/ingress.class: "gce"
+    
+    # Certificado SSL administrado por Google
+    networking.gke.io/managed-certificates: "${APP_NAME}-cert"
+    
+    # Redirección HTTPS
+    kubernetes.io/ingress.allow-http: "true"
+    
+    # Backend config
+    cloud.google.com/backend-config: '{"default": "${APP_NAME}-backend-config"}'
+    
+    # IP estática (opcional)
+    # kubernetes.io/ingress.global-static-ip-name: "${APP_NAME}-ip"
+    
+    # Rate limiting (opcional)
+    # cloud.google.com/armor-config: '{"${APP_NAME}-security-policy": "global"}'
+spec:
+  rules:
+  - host: ${K8S_NAMESPACE}.tudominio.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: ${APP_NAME}
+            port:
+              number: 80
+  
+  # Configuración TLS
+  tls:
+  - hosts:
+    - ${K8S_NAMESPACE}.tudominio.com
+    secretName: ${APP_NAME}-tls
+
+---
+# Certificado SSL administrado por Google
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: ${APP_NAME}-cert
+  namespace: ${K8S_NAMESPACE}
+spec:
+  domains:
+    - ${K8S_NAMESPACE}.tudominio.com
+
+---
+# Cloud Armor Security Policy (opcional pero recomendado)
+apiVersion: cloud.google.com/v1
+kind: SecurityPolicy
+metadata:
+  name: ${APP_NAME}-security-policy
+  namespace: ${K8S_NAMESPACE}
+spec:
+  description: "Security policy for ${APP_NAME}"
+  
+  # Reglas de seguridad
+  rules:
+  - action: "allow"
+    description: "Allow traffic from specific IPs"
+    match:
+      versionedExpr: "SRC_IPS_V1"
+      config:
+        srcIpRanges:
+        - "0.0.0.0/0"  # Cambiar por IPs específicas en producción
+    priority: 1000
+  
+  # Rate limiting
+  - action: "rate_based_ban"
+    description: "Rate limit rule"
+    match:
+      versionedExpr: "SRC_IPS_V1"
+      config:
+        srcIpRanges:
+        - "*"
+    priority: 2000
+    rateLimitOptions:
+      conformAction: "allow"
+      exceedAction: "deny(429)"
+      rateLimitThreshold:
+        count: 100
+        intervalSec: 60
+      banDurationSec: 600
+  
+  # Bloqueo de países (ejemplo)
+  # - action: "deny(403)"
+  #   description: "Block specific countries"
+  #   match:
+  #     expr:
+  #       expression: "origin.region_code == 'CN'"
+  #   priority: 3000

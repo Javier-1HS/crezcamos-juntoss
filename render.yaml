@@ -1,0 +1,11 @@
+# Configuración para Render.com
+
+runtime: java
+java_version: 17.0.8
+
+build_command: mvn clean package -DskipTests
+start_command: java -Dserver.port=8080 -Dspring.profiles.active=prod -jar target/mi-aplicacion-java-2.0.0.jar
+
+env:
+  - database_url: postgresql://
+  - spring_profiles_active: prod

@@ -1,0 +1,3 @@
+com\cloudnative\academy\api\UserControllerTest.class
+com\cloudnative\academy\service\UserServiceTest.class
+com\cloudnative\academy\repository\UserRepositoryTest.class
