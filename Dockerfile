@@ -25,11 +25,10 @@ RUN groupadd -g 10001 app && \
 
 WORKDIR /app
 
-# This now works because "build" refers to the stage above
+# Ensure this matches exactly
 COPY --from=build /home/app/target/*.jar /app/app.jar
 
 USER app
-CMD ["java", "-jar", "/app/app.jar"]
 
 # USER 10001
 # =====================================================
