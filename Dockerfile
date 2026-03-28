@@ -17,14 +17,15 @@ RUN groupadd -g 10001 app && \
 WORKDIR /app
 
 # Combine the copy and ownership change into one step
-COPY --chown=app:app target/*.jar /app/app.jar
+# COPY --chown=app:app target/*.jar /app/app.jar
+# Assuming your first stage is: FROM maven AS build
+COPY --from=build /home/app/target/*.jar /app/app.jar
 
 # Adjust permissions if necessary (though 755 is usually default for files)
 RUN chmod 755 /app/app.jar
 
 USER app
 # USER 10001
-
 # =====================================================
 # Health check
 # =====================================================
