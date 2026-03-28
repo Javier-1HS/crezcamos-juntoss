@@ -23,12 +23,19 @@ FROM tomcat:jre17-temurin-jammy
 RUN groupadd -g 10001 app && \
     useradd -u 10001 -g app -s /usr/sbin/nologin -m app
 
+# Move to the app directory
 WORKDIR /app
 
-# Ensure this matches exactly
-COPY --from=build /home/app/target/*.jar /app/app.jar
+# Copy from the build stage and rename to a simple, predictable name
+COPY --from=build /home/app/target/*.jar app.jar
+
+# Ensure the app user owns the file
+RUN chown app:app app.jar
 
 USER app
+
+# Run the jar directly from the current WORKDIR (/app)
+CMD ["java", "-jar", "app.jar"]
 
 # USER 10001
 # =====================================================
